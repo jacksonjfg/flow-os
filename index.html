@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+﻿<!DOCTYPE html>
 <html lang="pt-BR">
 <head>
 <meta charset="UTF-8">
@@ -283,7 +283,7 @@ select.input-field{cursor:pointer;}
 <body>
 
 <!-- SETUP -->
-<div id="setup-screen" class="show">
+<div id="setup-screen">
   <div class="setup-box">
     <div style="font-size:20px;font-weight:600;margin-bottom:20px">⚡ Flow OS</div>
 
@@ -754,62 +754,20 @@ function setData(k,v){ localSet(k,v); }
 // FIREBASE
 // ============================================================
 async function initFirebase(){
-  const apiKey = document.getElementById('fb-apikey').value.trim();
-  const projectId = document.getElementById('fb-projectid').value.trim();
-  const authDomain = document.getElementById('fb-authdomain').value.trim();
-  if(!apiKey||!projectId){ document.getElementById('setup-error').style.display='block'; return; }
-  document.getElementById('fb-connect-btn').textContent = 'Conectando...';
-  try {
-    const { initializeApp } = await import('https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js');
-    const { getFirestore, collection, getDocs, addDoc, updateDoc, deleteDoc, doc, setDoc } = await import('https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js');
-    const app = initializeApp({ apiKey, projectId, authDomain });
-    db = getFirestore(app);
-    window._fb = { collection, getDocs, addDoc, updateDoc, deleteDoc, doc, setDoc, db };
-    isFirebase = true;
-    localSet('fb_config', { apiKey, projectId, authDomain });
-    saveAIConfig();
-    document.getElementById('sync-status').textContent = '● Firebase';
-    document.getElementById('sync-status').style.color = 'var(--green)';
-    closeSetup();
-    await syncFromFirebase();
-  } catch(e){
-    document.getElementById('setup-error').style.display='block';
-    document.getElementById('fb-connect-btn').textContent = 'Salvar e conectar';
-  }
+  useLocal();
 }
 
 async function syncFromFirebase(){
-  if(!isFirebase) return;
-  const { collection, getDocs, db } = window._fb;
-  const cols = ['sessions','tasks','events','categories','work_blocks','study_topics','study_logs','workout_days','workout_logs','notes','cardio_logs','weight_logs'];
-  for(const col of cols){
-    try {
-      const snap = await getDocs(collection(db, col));
-      const arr = [];
-      snap.forEach(d => arr.push({id:d.id,...d.data()}));
-      localSet(col, arr);
-    } catch(e){}
-  }
-  refreshAll();
+  return;
 }
 
 async function fbSave(col, item){
-  if(!isFirebase) return item;
-  const { collection, addDoc, doc, setDoc, db } = window._fb;
-  if(item.id && item.id.length > 10){
-    await setDoc(doc(db,col,item.id), item);
-    return item;
-  }
-  const ref = await addDoc(collection(db,col), item);
-  return {...item, id: ref.id};
+  return item;
 }
 
 async function fbDelete(col, id){
-  if(!isFirebase) return;
-  const { doc, deleteDoc, db } = window._fb;
-  await deleteDoc(doc(db,col,id));
+  return;
 }
-
 function useLocal(){
   saveAIConfig();
   localSet('setup_done', true);
@@ -949,7 +907,8 @@ function timerStart(){
   document.getElementById('live-timer-task').textContent = name.length>20?name.slice(0,20)+'…':name;
   document.getElementById('quick-start-btn').style.display='none';
   document.getElementById('timer-pause-log').style.display='none';
-  document.getElementById('timer-stats-row').style.display='flex';
+  const timerStatsRow = document.getElementById('timer-stats-row');
+  if(timerStatsRow) timerStatsRow.style.display='flex';
   updateTimerRange();
 }
 
@@ -2838,47 +2797,16 @@ document.addEventListener('DOMContentLoaded',()=>{
   const providerEl=document.getElementById('ai-provider');
   if(providerEl){ providerEl.value=savedProvider; toggleAIKeyRow(savedProvider); }
 
-  // Auto-connect Firebase if credentials were saved previously
-  const savedCfg=localGet('fb_config');
-  if(savedCfg && savedCfg.apiKey && savedCfg.projectId){
-    // Pre-fill fields
-    document.getElementById('fb-apikey').value=savedCfg.apiKey||'';
-    document.getElementById('fb-projectid').value=savedCfg.projectId||'';
-    document.getElementById('fb-authdomain').value=savedCfg.authDomain||'';
-    // Auto-connect silently
-    autoConnectFirebase(savedCfg).then(()=>{}).catch(()=>{
-      // If Firebase fails, just start locally with saved data
-      bootLocal();
-    });
-  } else {
-    // No saved config — check if user already dismissed setup before
-    const setupDone=localGet('setup_done');
-    if(setupDone){
-      bootLocal();
-    }
-    // else: setup screen stays visible (default)
-  }
+  localSet('setup_done', true);
+  localStorage.removeItem('flowos_fb_config');
+  isFirebase = false;
+  window._fb = null;
+  bootLocal();
 });
 
 async function autoConnectFirebase(cfg){
-  try {
-    const { initializeApp } = await import('https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js');
-    const { getFirestore, collection, getDocs, addDoc, deleteDoc, doc, setDoc } = await import('https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js');
-    const app = initializeApp(cfg);
-    db = getFirestore(app);
-    window._fb = { collection, getDocs, addDoc, deleteDoc, doc, setDoc, db };
-    isFirebase = true;
-    document.getElementById('sync-status').textContent = '● Firebase';
-    document.getElementById('sync-status').style.color = 'var(--green)';
-    // Hide setup screen immediately
-    document.getElementById('setup-screen').classList.remove('show');
-    initDefaultCategories();
-    await syncFromFirebase();
-  } catch(e){
-    throw e;
-  }
+  return;
 }
-
 function bootLocal(){
   document.getElementById('setup-screen').classList.remove('show');
   initDefaultCategories();
