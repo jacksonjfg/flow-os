@@ -285,10 +285,9 @@ select.input-field{cursor:pointer;}
 <!-- SETUP -->
 <div id="setup-screen" class="show">
   <div class="setup-box">
-    <div style="font-size:20px;font-weight:600;margin-bottom:6px">⚡ Flow OS</div>
-    <div style="font-size:13px;color:var(--text2);margin-bottom:24px;line-height:1.6">Configure abaixo ou use local sem configurar nada.</div>
+    <div style="font-size:20px;font-weight:600;margin-bottom:20px">⚡ Flow OS</div>
 
-    <div style="font-size:11px;color:var(--text3);text-transform:uppercase;letter-spacing:0.8px;margin-bottom:10px">Firebase (sincronização entre dispositivos)</div>
+    <div style="font-size:11px;color:var(--text3);text-transform:uppercase;letter-spacing:0.8px;margin-bottom:10px">Firebase — sincronização entre dispositivos</div>
     <div class="form-row"><label class="form-label">API Key</label><input class="input-field" id="fb-apikey" placeholder="AIzaSy..."></div>
     <div class="form-row"><label class="form-label">Project ID</label><input class="input-field" id="fb-projectid" placeholder="meu-projeto-id"></div>
     <div class="form-row"><label class="form-label">Auth Domain</label><input class="input-field" id="fb-authdomain" placeholder="meu-projeto.firebaseapp.com"></div>
@@ -307,10 +306,10 @@ select.input-field{cursor:pointer;}
     <div class="form-row" id="ai-key-row" style="display:none">
       <label class="form-label">API Key da IA</label>
       <input class="input-field" id="ai-api-key" placeholder="Cole sua chave aqui..." type="password">
-      <div style="font-size:11px;color:var(--text3);margin-top:6px">Fica salva apenas no seu dispositivo (localStorage).</div>
+      <div style="font-size:11px;color:var(--text3);margin-top:6px">Salva apenas no seu dispositivo.</div>
     </div>
 
-    <div id="setup-error" style="color:var(--red);font-size:12px;margin-top:8px;display:none">Credenciais Firebase inválidas.</div>
+    <div id="setup-error" style="color:var(--red);font-size:12px;margin-top:8px;display:none">Credenciais Firebase inválidas. Verifique e tente novamente.</div>
     <div style="display:flex;gap:10px;margin-top:20px">
       <button class="btn btn-ghost" onclick="useLocal()" style="flex:1">Usar local</button>
       <button class="btn btn-primary" onclick="initFirebase()" id="fb-connect-btn" style="flex:1">Salvar e conectar</button>
@@ -767,6 +766,7 @@ async function initFirebase(){
     db = getFirestore(app);
     window._fb = { collection, getDocs, addDoc, updateDoc, deleteDoc, doc, setDoc, db };
     isFirebase = true;
+    localSet('fb_config', { apiKey, projectId, authDomain });
     saveAIConfig();
     document.getElementById('sync-status').textContent = '● Firebase';
     document.getElementById('sync-status').style.color = 'var(--green)';
@@ -774,7 +774,7 @@ async function initFirebase(){
     await syncFromFirebase();
   } catch(e){
     document.getElementById('setup-error').style.display='block';
-    document.getElementById('fb-connect-btn').textContent = 'Conectar Firebase';
+    document.getElementById('fb-connect-btn').textContent = 'Salvar e conectar';
   }
 }
 
@@ -812,9 +812,9 @@ async function fbDelete(col, id){
 
 function useLocal(){
   saveAIConfig();
+  localSet('setup_done', true);
   document.getElementById('sync-status').textContent = '● local';
   closeSetup();
-  refreshAll();
 }
 
 function saveAIConfig(){
@@ -2832,17 +2832,61 @@ function refreshAll(){
 
 document.addEventListener('DOMContentLoaded',()=>{
   document.getElementById('topbar-date').textContent=new Date().toLocaleDateString('pt-BR',{weekday:'long',day:'numeric',month:'long'});
-  // Check saved firebase config
+
+  // Restore AI provider UI
+  const savedProvider=localGet('ai_provider')||'none';
+  const providerEl=document.getElementById('ai-provider');
+  if(providerEl){ providerEl.value=savedProvider; toggleAIKeyRow(savedProvider); }
+
+  // Auto-connect Firebase if credentials were saved previously
   const savedCfg=localGet('fb_config');
-  if(savedCfg){
+  if(savedCfg && savedCfg.apiKey && savedCfg.projectId){
+    // Pre-fill fields
     document.getElementById('fb-apikey').value=savedCfg.apiKey||'';
     document.getElementById('fb-projectid').value=savedCfg.projectId||'';
     document.getElementById('fb-authdomain').value=savedCfg.authDomain||'';
+    // Auto-connect silently
+    autoConnectFirebase(savedCfg).then(()=>{}).catch(()=>{
+      // If Firebase fails, just start locally with saved data
+      bootLocal();
+    });
+  } else {
+    // No saved config — check if user already dismissed setup before
+    const setupDone=localGet('setup_done');
+    if(setupDone){
+      bootLocal();
+    }
+    // else: setup screen stays visible (default)
   }
 });
 
+async function autoConnectFirebase(cfg){
+  try {
+    const { initializeApp } = await import('https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js');
+    const { getFirestore, collection, getDocs, addDoc, deleteDoc, doc, setDoc } = await import('https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js');
+    const app = initializeApp(cfg);
+    db = getFirestore(app);
+    window._fb = { collection, getDocs, addDoc, deleteDoc, doc, setDoc, db };
+    isFirebase = true;
+    document.getElementById('sync-status').textContent = '● Firebase';
+    document.getElementById('sync-status').style.color = 'var(--green)';
+    // Hide setup screen immediately
+    document.getElementById('setup-screen').classList.remove('show');
+    initDefaultCategories();
+    await syncFromFirebase();
+  } catch(e){
+    throw e;
+  }
+}
+
+function bootLocal(){
+  document.getElementById('setup-screen').classList.remove('show');
+  initDefaultCategories();
+  refreshAll();
+}
+
 // Nav active states
-document.querySelectorAll('.nav-item').forEach((item,i)=>{
+document.querySelectorAll('.nav-item').forEach((item)=>{
   item.addEventListener('click',function(){
     document.querySelectorAll('.nav-item').forEach(x=>x.classList.remove('active'));
     this.classList.add('active');
