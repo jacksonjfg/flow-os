@@ -345,7 +345,7 @@ select.input-field{cursor:pointer;}
     <div class="topbar-left">
       <button id="hamburger" onclick="toggleSidebar()"><svg viewBox="0 0 24 24"><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/></svg></button>
       <span style="font-size:14px;font-weight:500" id="view-title">Dashboard</span>
-      <span style="font-size:12px;color:var(--text3);font-family:'DM Mono',monospace" id="topbar-date"></span>
+      <span style="font-size:12px;color:var(--text3);font-family:'DM Mono',monospace" id="topbar-date"></span><div style="display:flex;align-items:center;gap:6px;margin-left:10px"><button class="btn btn-ghost" style="padding:4px 9px;font-size:14px;line-height:1" onclick="navSelectedDay(-1)">‹</button><button class="btn btn-ghost" id="selected-day-label" style="padding:4px 10px;font-size:12px;min-width:108px;justify-content:center" onclick="goSelectedToday()">Hoje</button><button class="btn btn-ghost" style="padding:4px 9px;font-size:14px;line-height:1" onclick="navSelectedDay(1)">›</button></div>
     </div>
     <div class="topbar-right">
       <div id="live-timer-display"><div class="pulse-dot"></div><span id="live-timer-task">—</span><span id="live-timer-time">00:00:00</span></div>
@@ -363,27 +363,48 @@ select.input-field{cursor:pointer;}
       </div>
 
       <div class="grid-4">
-        <div class="metric"><div class="metric-label">Hoje</div><div class="metric-val" id="m-hoje">0h 00m</div><div class="metric-sub" id="m-hoje-sub">0 sessões</div></div>
+        <div class="metric"><div class="metric-label" id="m-dia-label">Dia selecionado</div><div class="metric-val" id="m-hoje">0h 00m</div><div class="metric-sub" id="m-hoje-sub">0 sessões</div></div>
         <div class="metric"><div class="metric-label">Esta semana</div><div class="metric-val" id="m-semana">0h 00m</div><div class="metric-sub">meta: 40h</div></div>
         <div class="metric"><div class="metric-label">Este mês</div><div class="metric-val" id="m-mes">0h 00m</div><div class="metric-sub" id="m-mes-sub">0 dias ativos</div></div>
         <div class="metric"><div class="metric-label">Foco médio</div><div class="metric-val" id="m-foco">—</div><div class="metric-sub">qualidade geral</div></div>
       </div>
 
+
+      <div class="card">
+        <div style="display:flex;justify-content:space-between;align-items:center;gap:12px;margin-bottom:12px;flex-wrap:wrap">
+          <div class="card-title" style="margin:0" id="daily-log-title">Como foi o dia</div>
+          <button class="btn btn-primary" style="font-size:12px;padding:6px 12px" onclick="saveDailyLog()">Salvar dia</button>
+        </div>
+        <div style="display:grid;grid-template-columns:repeat(5,minmax(90px,1fr));gap:10px;margin-bottom:12px">
+          <div><label class="form-label">Dormiu</label><input class="input-field" id="dl-sleep" type="time" onchange="saveDailyLog(true)"></div>
+          <div><label class="form-label">Acordou</label><input class="input-field" id="dl-wake" type="time" onchange="saveDailyLog(true)"></div>
+          <div><label class="form-label">Café</label><input class="input-field" id="dl-breakfast" type="time" onchange="saveDailyLog(true)"></div>
+          <div><label class="form-label">Almoço</label><input class="input-field" id="dl-lunch" type="time" onchange="saveDailyLog(true)"></div>
+          <div><label class="form-label">Jantar</label><input class="input-field" id="dl-dinner" type="time" onchange="saveDailyLog(true)"></div>
+        </div>
+        <div style="display:grid;grid-template-columns:160px 160px minmax(0,1fr);gap:10px;align-items:start">
+          <div><label class="form-label">Energia</label><select class="input-field" id="dl-energy" onchange="saveDailyLog(true)"><option value="">-</option><option value="alta">Alta</option><option value="media">Media</option><option value="baixa">Baixa</option></select></div>
+          <div><label class="form-label">Humor</label><select class="input-field" id="dl-mood" onchange="saveDailyLog(true)"><option value="">-</option><option value="bom">Bom</option><option value="normal">Normal</option><option value="pesado">Pesado</option></select></div>
+          <div><label class="form-label">Notas do dia</label><textarea class="input-field" id="dl-note" placeholder="Como foi o dia? Sono, refeições, contexto, algo importante..." style="height:72px;resize:none" onblur="saveDailyLog(true)"></textarea></div>
+        </div>
+        <div id="daily-log-summary" style="margin-top:12px;font-size:12px;color:var(--text3)"></div>
+      </div>
+
       <div class="grid-2">
         <div class="card"><div class="card-title">Horas por dia — últimos 14 dias</div><div style="position:relative;height:160px"><canvas id="chart-daily"></canvas></div></div>
         <div class="card">
-          <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px"><div class="card-title" style="margin:0">Blocos de hoje</div><button class="btn btn-ghost" style="font-size:11px;padding:4px 10px" onclick="showView('timer')">Ver tudo →</button></div>
+          <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px"><div class="card-title" style="margin:0" id="dash-blocks-title">Blocos do dia</div><button class="btn btn-ghost" style="font-size:11px;padding:4px 10px" onclick="showView('timer')">Ver tudo →</button></div>
           <div id="dash-blocks-summary"></div>
         </div>
       </div>
 
       <div class="grid-2">
         <div class="card"><div class="card-title">Distribuição por categoria</div><div style="position:relative;height:180px"><canvas id="chart-cat"></canvas></div></div>
-        <div class="card"><div class="card-title">Sessões de hoje</div><div id="today-sessions-list"><div class="empty-state"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><polyline points="12 7 12 12 15 15"/></svg><p>Nenhuma sessão ainda.<br>Inicie um timer para começar.</p></div></div></div>
+        <div class="card"><div class="card-title" id="sessions-day-title">Sessões do dia</div><div id="today-sessions-list"><div class="empty-state"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><polyline points="12 7 12 12 15 15"/></svg><p>Nenhuma sessão ainda.<br>Inicie um timer para começar.</p></div></div></div>
       </div>
 
       <div class="grid-2">
-        <div class="card"><div class="card-title">Timeline de hoje</div><div id="today-timeline"><div class="empty-state"><svg viewBox="0 0 24 24"><line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg><p>Registre sessões para ver a timeline.</p></div></div></div>
+        <div class="card"><div class="card-title" id="timeline-day-title">Timeline do dia</div><div id="today-timeline"><div class="empty-state"><svg viewBox="0 0 24 24"><line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg><p>Registre sessões para ver a timeline.</p></div></div></div>
         <div class="card"><div class="card-title">Mapa de calor — atividade anual</div><div class="heatmap" id="heatmap"></div><div style="display:flex;gap:6px;align-items:center;margin-top:10px;font-size:11px;color:var(--text3)">Menos <div style="width:10px;height:10px;border-radius:2px" class="hm-0"></div><div style="width:10px;height:10px;border-radius:2px" class="hm-1"></div><div style="width:10px;height:10px;border-radius:2px" class="hm-2"></div><div style="width:10px;height:10px;border-radius:2px" class="hm-3"></div><div style="width:10px;height:10px;border-radius:2px" class="hm-4"></div>Mais</div></div>
       </div>
     </div>
@@ -391,8 +412,8 @@ select.input-field{cursor:pointer;}
     <!-- ═══════════════ TIMER ═══════════════ -->
     <div class="view" id="view-timer">
       <div class="card">
-        <div style="font-size:13px;font-weight:600;margin-bottom:4px">Blocos de trabalho — hoje</div>
-        <div style="font-size:11px;color:var(--text3);margin-bottom:14px">Registre os períodos que você trabalhou no dia</div>
+        <div style="font-size:13px;font-weight:600;margin-bottom:4px" id="timer-blocks-title">Blocos de trabalho — dia selecionado</div>
+        <div style="font-size:11px;color:var(--text3);margin-bottom:14px" id="timer-blocks-sub">Registre os períodos que você trabalhou no dia selecionado</div>
         <div style="display:flex;gap:10px;align-items:flex-end;flex-wrap:wrap;padding-bottom:14px;border-bottom:1px solid var(--border);margin-bottom:14px">
           <div style="min-width:140px;flex:2"><label class="form-label">Nome do bloco</label><input class="input-field" id="block-label-input" placeholder="Ex: Manhã, Tarde..."></div>
           <div><label class="form-label">Início</label><input class="input-field" id="block-start-input" type="time" style="width:110px"></div>
@@ -441,7 +462,7 @@ select.input-field{cursor:pointer;}
 
       <div class="grid-2">
         <div class="card"><div class="card-title">Tarefas com tempo estimado</div><div id="timer-task-list"><div class="empty-state"><svg viewBox="0 0 24 24"><line x1="8" y1="6" x2="21" y2="6"/></svg><p>Adicione tarefas com tempo estimado.</p></div></div></div>
-        <div class="card"><div class="card-title">Sessões de hoje</div><div id="timer-sessions-today"><div class="empty-state"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><polyline points="12 7 12 12 15 15"/></svg><p>Nenhuma sessão hoje ainda.</p></div></div></div>
+        <div class="card"><div class="card-title" id="timer-sessions-title">Sessões do dia</div><div id="timer-sessions-today"><div class="empty-state"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><polyline points="12 7 12 12 15 15"/></svg><p>Nenhuma sessão nesse dia.</p></div></div></div>
       </div>
 
       <div class="card"><div class="card-title">Registro manual de sessão</div>
@@ -514,7 +535,7 @@ select.input-field{cursor:pointer;}
     <!-- ═══════════════ RELATÓRIOS ═══════════════ -->
     <div class="view" id="view-relatorios">
       <div class="tab-nav">
-        <button class="tab-btn active" onclick="switchReportTab('semana',this)">Semana</button>
+        <button class="tab-btn active" onclick="switchReportTab('dia',this)">Dia</button><button class="tab-btn" onclick="switchReportTab('semana',this)">Semana</button>
         <button class="tab-btn" onclick="switchReportTab('mes',this)">Mês</button>
         <button class="tab-btn" onclick="switchReportTab('bimestre',this)">Bimestre</button>
       </div>
@@ -523,6 +544,7 @@ select.input-field{cursor:pointer;}
         <div class="card"><div class="card-title" id="report-chart-title">Horas por dia</div><div style="position:relative;height:200px"><canvas id="chart-report"></canvas></div></div>
         <div class="card"><div class="card-title">Qualidade das sessões</div><div style="position:relative;height:200px"><canvas id="chart-qual"></canvas></div></div>
       </div>
+      <div class="card"><div class="card-title">Rotina e contexto</div><div id="routine-report"></div></div>
       <div class="card"><div class="card-title">Melhores dias (Top 10)</div><div id="top-days-list"></div></div>
     </div>
 
@@ -736,7 +758,8 @@ let timerPausedAccum = 0;
 let timerRunning = false;
 let currentTaskTab = 'pendente';
 let currentAgendaTab = 'hoje';
-let currentReportTab = 'semana';
+let currentReportTab = 'dia';
+let selectedDay = null;
 let selectedCatColor = 'purple';
 let charts = {};
 let editTaskId = null;
@@ -1111,9 +1134,46 @@ async function saveSession(s){
 }
 
 function getSessions(){ return getData('sessions')||[]; }
-function getSessionsToday(){
+function getSelectedDay(){
+  if(!selectedDay) selectedDay=toDateStr(new Date());
+  return selectedDay;
+}
+function getSessionsByDate(date){ return getSessions().filter(s=>s.date===date); }
+function getSessionsToday(){ return getSessionsByDate(getSelectedDay()); }
+function formatSelectedDayLabel(date){
   const today=toDateStr(new Date());
-  return getSessions().filter(s=>s.date===today);
+  const y=new Date(); y.setDate(y.getDate()-1);
+  const t=new Date(); t.setDate(t.getDate()+1);
+  if(date===today) return 'Hoje';
+  if(date===toDateStr(y)) return 'Ontem';
+  if(date===toDateStr(t)) return 'Amanhã';
+  return new Date(date+'T12:00:00').toLocaleDateString('pt-BR',{weekday:'short',day:'2-digit',month:'2-digit'});
+}
+function updateSelectedDayUI(){
+  const date=getSelectedDay();
+  const label=formatSelectedDayLabel(date);
+  const dateLong=new Date(date+'T12:00:00').toLocaleDateString('pt-BR',{weekday:'long',day:'numeric',month:'long'});
+  const setText=(id,txt)=>{ const el=document.getElementById(id); if(el) el.textContent=txt; };
+  setText('selected-day-label', label);
+  setText('m-dia-label', label);
+  setText('dash-blocks-title', 'Blocos de '+label.toLowerCase());
+  setText('sessions-day-title', 'Sessões de '+label.toLowerCase());
+  setText('timeline-day-title', 'Timeline de '+label.toLowerCase());
+  setText('timer-blocks-title', 'Blocos de trabalho - '+dateLong);
+  setText('timer-blocks-sub', 'Registre ou revise os períodos desse dia');
+  setText('timer-sessions-title', 'Sessões de '+label.toLowerCase());
+}
+function navSelectedDay(delta){
+  const d=new Date(getSelectedDay()+'T12:00:00');
+  d.setDate(d.getDate()+delta);
+  selectedDay=toDateStr(d);
+  updateSelectedDayUI();
+  refreshAll();
+}
+function goSelectedToday(){
+  selectedDay=toDateStr(new Date());
+  updateSelectedDayUI();
+  refreshAll();
 }
 function getSessionsInRange(start,end){
   return getSessions().filter(s=>s.date>=start&&s.date<=end);
@@ -1149,7 +1209,7 @@ function openAddTask(){
   document.getElementById('task-modal-title').textContent='Nova tarefa';
   document.getElementById('task-input-name').value='';
   document.getElementById('task-input-est').value='';
-  document.getElementById('task-input-date').value=toDateStr(new Date());
+  document.getElementById('task-input-date').value=getSelectedDay();
   document.getElementById('task-input-note').value='';
   document.getElementById('task-modal').classList.add('open');
 }
@@ -1276,7 +1336,7 @@ let agendaOffset = 0;
 let agendaMode = 'week'; // 'week' | 'month'
 
 function openAddEvent(){
-  document.getElementById('event-input-date').value=toDateStr(new Date());
+  document.getElementById('event-input-date').value=getSelectedDay();
   document.getElementById('event-modal').classList.add('open');
 }
 function closeEventModal(){ document.getElementById('event-modal').classList.remove('open'); }
@@ -1471,6 +1531,76 @@ function openAddEventOnDate(ds){
   document.getElementById('event-modal').classList.add('open');
 }
 
+
+
+// ============================================================
+// DAILY LOG - sleep, meals and context
+// ============================================================
+function getDailyLogs(){ return getData('daily_logs')||[]; }
+function getDailyLog(date){ return getDailyLogs().find(l=>l.date===date)||null; }
+function upsertDailyLog(log){
+  const logs=getDailyLogs();
+  const idx=logs.findIndex(l=>l.date===log.date);
+  if(idx>=0) logs[idx]={...logs[idx],...log,updatedAt:new Date().toISOString()};
+  else logs.push({...log,createdAt:new Date().toISOString(),updatedAt:new Date().toISOString()});
+  setData('daily_logs',logs);
+}
+function timeDiffHours(start,end){
+  if(!start||!end) return null;
+  const base='2000-01-01T';
+  let s=new Date(base+start+':00'), e=new Date(base+end+':00');
+  if(e<=s) e.setDate(e.getDate()+1);
+  return Math.round((e-s)/360000)/10;
+}
+function saveDailyLog(silent){
+  const date=getSelectedDay();
+  const val=id=>document.getElementById(id)?.value||'';
+  const log={date,sleep:val('dl-sleep'),wake:val('dl-wake'),breakfast:val('dl-breakfast'),lunch:val('dl-lunch'),dinner:val('dl-dinner'),energy:val('dl-energy'),mood:val('dl-mood'),note:val('dl-note').trim()};
+  upsertDailyLog(log);
+  renderDailyLog();
+  renderReportTab();
+  if(!silent){ const el=document.getElementById('daily-log-summary'); if(el) el.innerHTML='<span style="color:var(--green)">Dia salvo.</span>'; }
+}
+function renderDailyLog(){
+  const date=getSelectedDay();
+  const log=getDailyLog(date)||{};
+  const setVal=(id,v)=>{ const el=document.getElementById(id); if(el) el.value=v||''; };
+  setVal('dl-sleep',log.sleep); setVal('dl-wake',log.wake); setVal('dl-breakfast',log.breakfast); setVal('dl-lunch',log.lunch); setVal('dl-dinner',log.dinner);
+  setVal('dl-energy',log.energy); setVal('dl-mood',log.mood); setVal('dl-note',log.note);
+  const title=document.getElementById('daily-log-title');
+  if(title) title.textContent='Como foi '+formatSelectedDayLabel(date).toLowerCase();
+  const summary=document.getElementById('daily-log-summary');
+  if(!summary) return;
+  const sleepHours=timeDiffHours(log.sleep,log.wake);
+  const parts=[];
+  if(sleepHours!==null) parts.push('Sono: '+sleepHours+'h');
+  if(log.energy) parts.push('Energia: '+log.energy);
+  if(log.mood) parts.push('Humor: '+log.mood);
+  if(log.breakfast||log.lunch||log.dinner) parts.push('Refeições: '+[log.breakfast&&'café '+log.breakfast,log.lunch&&'almoço '+log.lunch,log.dinner&&'jantar '+log.dinner].filter(Boolean).join(' · '));
+  summary.textContent=parts.length?parts.join(' | '):'Nenhum detalhe de rotina registrado para esse dia.';
+}
+function renderRoutineReport(start,end){
+  const el=document.getElementById('routine-report');
+  if(!el) return;
+  const logs=getDailyLogs().filter(l=>l.date>=start&&l.date<=end).sort((a,b)=>a.date>b.date?1:-1);
+  if(!logs.length){ el.innerHTML='<div class="empty-state"><p>Nenhum registro de rotina nesse período.</p></div>'; return; }
+  const sleepVals=logs.map(l=>timeDiffHours(l.sleep,l.wake)).filter(v=>v!==null);
+  const avgSleep=sleepVals.length?Math.round(sleepVals.reduce((a,v)=>a+v,0)/sleepVals.length*10)/10:null;
+  const mealCounts={breakfast:logs.filter(l=>l.breakfast).length,lunch:logs.filter(l=>l.lunch).length,dinner:logs.filter(l=>l.dinner).length};
+  const moodCounts=logs.reduce((acc,l)=>{ if(l.mood) acc[l.mood]=(acc[l.mood]||0)+1; return acc; },{});
+  const energyCounts=logs.reduce((acc,l)=>{ if(l.energy) acc[l.energy]=(acc[l.energy]||0)+1; return acc; },{});
+  const countText=obj=>Object.entries(obj).map(([k,v])=>k+': '+v).join(' · ')||'-';
+  let html='';
+  html+='<div class="grid-4" style="margin-bottom:12px">';
+  html+='<div class="metric"><div class="metric-label">Dias registrados</div><div class="metric-val">'+logs.length+'</div></div>';
+  html+='<div class="metric"><div class="metric-label">Sono médio</div><div class="metric-val">'+(avgSleep!==null?avgSleep+'h':'-')+'</div></div>';
+  html+='<div class="metric"><div class="metric-label">Café/Almoço/Jantar</div><div class="metric-val" style="font-size:18px">'+mealCounts.breakfast+'/'+mealCounts.lunch+'/'+mealCounts.dinner+'</div></div>';
+  html+='<div class="metric"><div class="metric-label">Energia</div><div class="metric-val" style="font-size:18px">'+countText(energyCounts)+'</div></div>';
+  html+='</div><div style="font-size:12px;color:var(--text3);margin-bottom:8px">Humor: '+countText(moodCounts)+'</div>';
+  html+=logs.slice(-10).reverse().map(l=>'<div style="padding:8px 0;border-top:1px solid var(--border);font-size:12px"><strong style="color:var(--text2)">'+l.date+'</strong> · sono '+(timeDiffHours(l.sleep,l.wake)??'-')+'h · café '+(l.breakfast||'-')+' · almoço '+(l.lunch||'-')+' · jantar '+(l.dinner||'-')+(l.note?'<div style="color:var(--text3);margin-top:4px">'+l.note+'</div>':'')+'</div>').join('');
+  el.innerHTML=html;
+}
+
 // ============================================================
 // AI REPORT — multi-provider + local fallback
 // ============================================================
@@ -1498,6 +1628,7 @@ function buildReportData(start,end){
   const studyLogs=getData('study_logs')||[];
   const workoutLogs=getData('workout_logs')||[];
   const blocks=(getData('work_blocks')||[]).filter(b=>b.date>=start&&b.date<=end);
+  const dailyLogs=getDailyLogs().filter(l=>l.date>=start&&l.date<=end);
 
   const totalMin=sessions.reduce((a,s)=>a+s.durMin,0);
   const totalPauseMin=sessions.reduce((a,s)=>a+(s.pauseMin||0),0);
@@ -1517,7 +1648,7 @@ function buildReportData(start,end){
   const blockMin=blocks.reduce((a,b)=>{ if(b.end) a+=Math.round((new Date(b.end)-new Date(b.start))/60000); return a; },0);
   const eff=blockMin>0?Math.round(totalMin/blockMin*100):null;
 
-  return {sessions,totalMin,totalPauseMin,diasAtivos,qualCount,topCats,pauseReasons,studyMin,workouts,taskNotes,tasks,blockMin,eff};
+  return {sessions,totalMin,totalPauseMin,diasAtivos,qualCount,topCats,pauseReasons,studyMin,workouts,taskNotes,tasks,blockMin,eff,dailyLogs};
 }
 
 // LOCAL REPORT — no AI needed
@@ -1528,7 +1659,7 @@ function generateLocalReport(){
   if(!start||!end){ outEl.innerHTML='<span style="color:var(--red)">Selecione o período.</span>'; return; }
 
   const d=buildReportData(start,end);
-  if(!d.sessions.length){ outEl.innerHTML='<span style="color:var(--text3)">Nenhuma sessão registrada nesse período.</span>'; return; }
+  if(!d.sessions.length && !d.dailyLogs.length){ outEl.innerHTML='<span style="color:var(--text3)">Nenhuma sessão ou rotina registrada nesse período.</span>'; return; }
 
   const qualLabels={flow:'🌊 Flow',ok:'👍 Ok',hard:'🧱 Difícil',blocked:'🔴 Bloqueado'};
   const qualBar=Object.entries(d.qualCount)
@@ -1545,6 +1676,7 @@ function generateLocalReport(){
     ['Tarefas concluídas',`${d.tasks.filter(t=>t.status==='concluida').length} concluídas · ${d.tasks.filter(t=>t.status==='pendente').length} pendentes`],
     d.studyMin?['Estudo',formatDur(d.studyMin)]:null,
     d.workouts?['Treinos',`${d.workouts} sessão(ões)`]:null,
+    d.dailyLogs.length?['Rotina registrada',`${d.dailyLogs.length} dia(s)`]:null,
   ].filter(Boolean);
 
   const tableHtml=`<table style="width:100%;border-collapse:collapse;font-size:13px">
@@ -1663,16 +1795,15 @@ Relatório:`;
 // WORK BLOCKS — manual entry
 // ============================================================
 function getBlocks(){ return getData('work_blocks')||[]; }
-function getTodayBlocks(){
-  return getBlocks().filter(b=>b.date===toDateStr(new Date()));
-}
+function getBlocksByDate(date){ return getBlocks().filter(b=>b.date===date); }
+function getTodayBlocks(){ return getBlocksByDate(getSelectedDay()); }
 
 async function addBlockManual(){
   const label=document.getElementById('block-label-input').value.trim();
   const startVal=document.getElementById('block-start-input').value;
   const endVal=document.getElementById('block-end-input').value;
   if(!startVal||!endVal){ return; }
-  const today=toDateStr(new Date());
+  const today=getSelectedDay();
   const startDt=new Date(today+'T'+startVal+':00');
   const endDt=new Date(today+'T'+endVal+':00');
   if(endDt<=startDt) return;
@@ -1727,7 +1858,7 @@ function renderBlocks(){
   const el=document.getElementById('blocks-list');
   if(!el) return;
   if(!blocks.length){
-    el.innerHTML=`<div style="text-align:center;padding:12px;color:var(--text3);font-size:12px">Nenhum bloco registrado hoje ainda.</div>`;
+    el.innerHTML=`<div style="text-align:center;padding:12px;color:var(--text3);font-size:12px">Nenhum bloco registrado nesse dia.</div>`;
     const ds=document.getElementById('day-summary');
     if(ds) ds.style.display='none';
     renderDashBlocksSummary(blocks,{totalBlockMin:0,focusMin:0,respiroMin:0,eff:0});
@@ -1767,7 +1898,7 @@ function renderDashBlocksSummary(blocks,stats){
   const el=document.getElementById('dash-blocks-summary');
   if(!el) return;
   if(!blocks.length){
-    el.innerHTML=`<div style="text-align:center;padding:16px;color:var(--text3);font-size:12px">Nenhum bloco hoje.<br>Registre na aba Timer.</div>`;
+    el.innerHTML=`<div style="text-align:center;padding:16px;color:var(--text3);font-size:12px">Nenhum bloco nesse dia.<br>Registre na aba Timer.</div>`;
     return;
   }
   el.innerHTML=blocks.map(b=>{
@@ -1845,13 +1976,15 @@ async function deleteSession(id){
 }
 
 function updateMetrics(){
-  const today=toDateStr(new Date());
+  updateSelectedDayUI();
+  const today=getSelectedDay();
+  const selectedDate=new Date(today+'T12:00:00');
   const todaySessions=getSessionsToday();
   const hojeMin=todaySessions.reduce((a,s)=>a+s.durMin,0);
   document.getElementById('m-hoje').textContent=formatDur(hojeMin);
   document.getElementById('m-hoje-sub').textContent=`${todaySessions.length} sessões`;
 
-  const weekStart=getWeekStart(new Date());
+  const weekStart=getWeekStart(new Date(selectedDate));
   const weekSessions=getSessionsInRange(weekStart,today);
   const semanaMin=weekSessions.reduce((a,s)=>a+s.durMin,0);
   document.getElementById('m-semana').textContent=formatDur(semanaMin);
@@ -1873,6 +2006,7 @@ function updateMetrics(){
 
   renderTodaySessions();
   renderTodayTimeline();
+  renderDailyLog();
   renderDailyChart();
   renderCatChart();
   buildHeatmap();
@@ -1886,7 +2020,7 @@ function renderTodaySessions(){
   els.forEach(id=>{
     const el=document.getElementById(id);
     if(!el) return;
-    if(!sessions.length){ el.innerHTML='<div class="empty-state"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><polyline points="12 7 12 12 15 15"/></svg><p>Nenhuma sessão hoje ainda.</p></div>'; return; }
+    if(!sessions.length){ el.innerHTML='<div class="empty-state"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><polyline points="12 7 12 12 15 15"/></svg><p>Nenhuma sessão nesse dia.</p></div>'; return; }
     el.innerHTML=sessions.slice().reverse().map(s=>{
       const cat=getCatById(s.catId);
       const q=qualMap[s.qual]||qualMap.ok;
@@ -1922,8 +2056,9 @@ function renderTodayTimeline(){
 function renderDailyChart(){
   const days=14;
   const labels=[],data=[];
+  const base=new Date(getSelectedDay()+'T12:00:00');
   for(let i=days-1;i>=0;i--){
-    const d=new Date(); d.setDate(d.getDate()-i);
+    const d=new Date(base); d.setDate(d.getDate()-i);
     const ds=toDateStr(d);
     const min=getSessions().filter(s=>s.date===ds).reduce((a,s)=>a+s.durMin,0);
     labels.push(ds.slice(5));
@@ -1976,11 +2111,13 @@ function switchReportTab(tab,el){
 }
 
 function renderReportTab(){
-  const today=toDateStr(new Date());
+  const selected=getSelectedDay();
+  const today=currentReportTab==='dia'?selected:toDateStr(new Date());
   let startDate,label;
-  if(currentReportTab==='semana'){ startDate=getWeekStart(new Date()); label='7 dias'; }
-  else if(currentReportTab==='mes'){ startDate=today.slice(0,7)+'-01'; label='Mês'; }
-  else { const d=new Date(); d.setDate(1); d.setMonth(d.getMonth()-1); startDate=toDateStr(d); label='Bimestre'; }
+  if(currentReportTab==='dia'){ startDate=selected; label='Dia'; }
+  else if(currentReportTab==='semana'){ startDate=getWeekStart(new Date(selected+'T12:00:00')); label='7 dias'; }
+  else if(currentReportTab==='mes'){ startDate=selected.slice(0,7)+'-01'; label='Mês'; }
+  else { const d=new Date(selected+'T12:00:00'); d.setDate(1); d.setMonth(d.getMonth()-1); startDate=toDateStr(d); label='Bimestre'; }
   const sessions=getSessionsInRange(startDate,today);
   const totalMin=sessions.reduce((a,s)=>a+s.durMin,0);
   const dias=new Set(sessions.map(s=>s.date)).size;
@@ -1997,6 +2134,7 @@ function renderReportTab(){
   `;
   renderReportCharts(sessions,startDate,today);
   renderTopDays(sessions);
+  renderRoutineReport(startDate,today);
 }
 
 function renderReportCharts(sessions,startDate,endDate){
@@ -2497,7 +2635,7 @@ function renderTreino(){
   const monthStart=today.slice(0,7)+'-01';
 
   document.getElementById('wm-mes').textContent=(logs.filter(l=>l.date>=monthStart)).length;
-  const weekStart=getWeekStart(new Date());
+  const weekStart=getWeekStart(new Date(selectedDate));
   document.getElementById('wm-semana').textContent=`${logs.filter(l=>l.date>=weekStart&&l.date<=today).length}/${days.length}`;
   const kmMes=cardioLogs.filter(l=>l.date>=monthStart).reduce((a,l)=>a+(l.km||0),0);
   document.getElementById('wm-km').textContent=kmMes>0?kmMes.toFixed(1)+' km':'—';
@@ -2787,10 +2925,12 @@ function refreshAll(){
   renderTasks();
   renderAgenda();
   renderBlocks();
+  renderDailyLog();
 }
 
 document.addEventListener('DOMContentLoaded',()=>{
   document.getElementById('topbar-date').textContent=new Date().toLocaleDateString('pt-BR',{weekday:'long',day:'numeric',month:'long'});
+  updateSelectedDayUI();
 
   // Restore AI provider UI
   const savedProvider=localGet('ai_provider')||'none';
